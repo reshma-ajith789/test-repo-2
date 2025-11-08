@@ -1,0 +1,64 @@
+name: Build and Package Angular app - docker, ECR, ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Select the branch to run the workflow on'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - 'main'
+          - 'develop'
+
+      run_optional_jobs:
+        description: 'Do you want to run the Optional Jobs?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'    
+
+jobs:
+  buildangularapplication:
+    if: ${{ github.event.inputs.branch == 'main' && github.event.inputs.run_optional_jobs == 'false'}}
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+          
+      - name: Prepare Deployment Package
+        run: |
+          docker build -t my-angular-app -f DockerFile .
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 041063310378.dkr.ecr.eu-central-1.amazonaws.com
+          docker tag my-angular-app:latest 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
+          docker push 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
+          
+
+  deployinfraangularapplication:
+    if: ${{ github.event.inputs.branch == 'main' && github.event.inputs.run_optional_jobs == 'true'}}
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+          
+      - name: Verify code on main branch
+        run: |
+
+  updateangularapplication:
+    if: ${{ github.event.inputs.branch == 'develop' && github.event.inputs.run_optional_jobs == 'false'}}
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Verify code on develop branch
+        run: |
