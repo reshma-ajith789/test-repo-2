@@ -25,19 +25,16 @@ jobs:
   buildangularapplication:
     if: ${{ github.event.inputs.branch == 'main' && github.event.inputs.run_optional_jobs == 'false'}}
     runs-on: self-hosted
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: eu-central-1
+      
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
-
-      - name: Set AWS credentials
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-central-1
-        run: |
-          echo "AWS credentials set"
           
       - name: Prepare Deployment Package
         run: |
