@@ -30,14 +30,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
+
+      - name: Set AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-central-1
+        run: |
+          echo "AWS credentials set"
           
       - name: Prepare Deployment Package
         run: |
           docker build -t my-angular-app -f DockerFile .
-          aws sts assume-role --role-arn arn:aws:iam::041063310378:role/Deployment-Role --role-session-name mysession > creds.json
-          export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId < creds.json)
-          export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey < creds.json)
-          export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken < creds.json)
           aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 041063310378.dkr.ecr.eu-central-1.amazonaws.com
           docker tag my-angular-app:latest 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
           docker push 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
