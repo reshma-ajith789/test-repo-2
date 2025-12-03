@@ -51,6 +51,7 @@ jobs:
           
       - name: Verify code on main branch
         run: |
+          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-0aa705a7453ca7cf9 VpcId=vpc-0393ab23f063990ec SubnetIds=subnet-0361847b00918b1a3,subnet-0239791e2d903ed84 ECSServiceName=MyECSService PAssignPublicIp=Disabled PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:dockerimage PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-synvb4nzja35kngu PContainerPort=8080 PHostPort=8080 PServiceConnect=true PClientAliasesPort=8080 PRootFileSystemReadonly=true
 
   updateangularapplication:
     if: ${{ github.event.inputs.branch == 'develop' && github.event.inputs.run_optional_jobs == 'false'}}
@@ -62,4 +63,5 @@ jobs:
           ref: ${{ inputs.branch }}
 
       - name: Verify code on develop branch
-        run: |
+        run: aws ecs update-service --cluster MyEcsCluster --service MyEcsService --force-new-deployment
+
