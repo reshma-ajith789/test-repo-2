@@ -132,7 +132,7 @@ Parameters:
 
   PEnvironmentValue1:
     Type: String
-    Default: Staging
+    Default: Development
 
   PlogDriver:
     Type: String
@@ -347,3 +347,4 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref TaskDefinition
+
