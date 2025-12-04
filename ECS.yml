@@ -168,7 +168,7 @@ Parameters:
 
   Pmaxbuffersize:
     Type: Number
-    Default: 25m
+    Default: 256
 
   Pawslogsregion:
     Type: String
@@ -347,4 +347,5 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref TaskDefinition
+
 
