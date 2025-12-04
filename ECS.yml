@@ -221,19 +221,19 @@ Parameters:
 
 Resources:
 
-  ECSCluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: !Ref ECSClusterName
-      CapacityProviders: !Ref PCapacityProviders
-      ClusterSettings:
-        - Name: !Ref PClusterSettingName
-          Value: !Ref PClusterSettingValues
-      ServiceConnectDefaults:
-        Fn::If:
-          - HasSCNamespace
-          - Namespace: !Ref PServiceConnectNamespace
-          - !Ref "AWS::NoValue"
+  #ECSCluster:
+    #Type: AWS::ECS::Cluster
+    #Properties:
+      #ClusterName: !Ref ECSClusterName
+      #CapacityProviders: !Ref PCapacityProviders
+      #ClusterSettings:
+       # - Name: !Ref PClusterSettingName
+        #  Value: !Ref PClusterSettingValues
+      #ServiceConnectDefaults:
+       # Fn::If:
+       #   - HasSCNamespace
+       #   - Namespace: !Ref PServiceConnectNamespace
+       #   - !Ref "AWS::NoValue"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -288,7 +288,7 @@ Resources:
     DependsOn: LogGroup
     Properties:
       ServiceName: !Ref ECSServiceName
-      Cluster: !Ref ECSCluster
+      Cluster: !Ref ECSClusterName
       DesiredCount: !Ref DesiredTaskCount
       LaunchType: !Ref PLaunchType
       PlatformVersion: !Ref PPlatformVersion
@@ -347,5 +347,6 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref TaskDefinition
+
 
 
