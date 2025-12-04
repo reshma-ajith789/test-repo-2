@@ -22,10 +22,6 @@ jobs:
       - name: Prepare Deployment Package
         run: |
           docker build -t my-angular-app -f DockerFile .
-          aws sts assume-role --role-arn "arn:aws:iam::041063310378:role/Deployment-Role" --role-session-name "NewSession" --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text > credentials.txt
-          export AWS_ACCESS_KEY_ID=$(awk '{print $1}' credentials.txt)
-          export AWS_SECRET_ACCESS_KEY=$(awk '{print $2}' credentials.txt)
-          export AWS_SESSION_TOKEN=$(awk '{print $3}' credentials.txt)
           aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 041063310378.dkr.ecr.eu-central-1.amazonaws.com
           docker tag my-angular-app:latest 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
           docker push 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
