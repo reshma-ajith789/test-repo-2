@@ -30,6 +30,7 @@ jobs:
   deployinfraangularapplication:
     if: ${{ github.event.inputs.branch == 'main'}}
     runs-on: self-hosted
+    needs: buildangularapplication
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -43,7 +44,8 @@ jobs:
   updateangularapplication:
     if: ${{ github.event.inputs.branch == 'main'}}
     runs-on: self-hosted
-    steps:
+    needs: deployinfraangularapplication
+    steps: 
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
