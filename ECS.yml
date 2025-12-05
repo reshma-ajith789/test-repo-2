@@ -1,28 +1,29 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ECS Cluster, Task Definition and Service Template (fully corrected)
+Description: ECS Cluster, Task Definition and Service Template (with realistic default values)
 
 Parameters:
-
   ECSClusterName:
     Type: String
 
   TaskCPU:
     Type: String
-    Default: "256"
+    Default: '256'
 
   TaskMemory:
     Type: String
-    Default: "512"
+    Default: '512'
 
   SecurityGroupIds:
-    Type: CommaDelimitedList
-    Default: ""
+    Type: AWS::EC2::SecurityGroup::Id
+    Default: ''
 
   VpcId:
     Type: AWS::EC2::VPC::Id
+    Default: ''
 
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
+    Default: ''
 
   LatestECSOptimizedAMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -42,7 +43,7 @@ Parameters:
 
   LoadBalancerName:
     Type: String
-    Default: ""
+    Default: ''
 
   PSchedulingStrategy:
     Type: String
@@ -64,19 +65,17 @@ Parameters:
     Type: Number
     Default: 100
 
-  PDeploymentControllerType:
-    Type: String
-    Default: ECS
-
   PEnable:
     Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
+    Default: true
 
   PRollback:
     Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
+    Default: true
+
+  PDeploymentControllerType:
+    Type: String
+    Default: ECS
 
   PCpuArchitecture:
     Type: String
@@ -92,8 +91,7 @@ Parameters:
 
   PEssential:
     Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
+    Default: true
 
   PName:
     Type: String
@@ -135,9 +133,17 @@ Parameters:
     Type: String
     Default: my-task-family
 
+  # PExecutionRoleArn:
+  #   Type: String
+  #   Default: arn:aws:iam::123456789012:role/ecsTaskExecutionRole
+
+  # PTaskRoleArn:
+  #   Type: String
+  #   Default: arn:aws:iam::123456789012:role/ecsTaskRole
+
   PImage:
     Type: String
-    Default: ""
+    Default: ''
 
   Pawsloggroup:
     Type: String
@@ -149,7 +155,7 @@ Parameters:
 
   Pawslogscreategroup:
     Type: String
-    Default: "true"
+    Default: true
 
   Pmaxbuffersize:
     Type: Number
@@ -181,20 +187,19 @@ Parameters:
 
   PServiceConnectNamespace:
     Type: String
-    Default: ""
+    Default: ''
 
   PRequiresCompatibilities:
-    Type: CommaDelimitedList
-    Default: "FARGATE"
+    Type: String
+    Default: FARGATE
 
   PServiceConnect:
     Type: String
-    AllowedValues: ["true", "false"]
-    Default: "false"
+    Default: false
 
   PNamespace:
     Type: String
-    Default: ""
+    Default: ''
 
   PClientAliasesPort:
     Type: Number
@@ -202,29 +207,44 @@ Parameters:
 
   PRootFileSystemReadonly:
     Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
+    Default: true
 
 
 Resources:
 
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Ref Pawsloggroup
-      RetentionInDays: 30
+  #ECSCluster:
+    #Type: AWS::ECS::Cluster
+    #Properties:
+      #ClusterName: !Ref ECSClusterName
+      #CapacityProviders: !Ref PCapacityProviders
+      #ClusterSettings:
+       # - Name: !Ref PClusterSettingName
+        #  Value: !Ref PClusterSettingValues
+      #ServiceConnectDefaults:
+       # Fn::If:
+       #   - HasSCNamespace
+       #   - Namespace: !Ref PServiceConnectNamespace
+       #   - !Ref "AWS::NoValue"
+
+  # LogGroup:
+  #   Type: AWS::Logs::LogGroup
+  #   Properties:
+  #     LogGroupName: !Ref Pawsloggroup
+  #     RetentionInDays: 30
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Ref PFamily
-      Cpu: !Ref TaskCPU
+      # Cpu: !Ref TaskCPU
       Memory: !Ref TaskMemory
-      NetworkMode: !Ref PNetworkMode
-      RequiresCompatibilities: !Ref PRequiresCompatibilities
+      # NetworkMode: !Ref PNetworkMode
       RuntimePlatform:
         CpuArchitecture: !Ref PCpuArchitecture
         OperatingSystemFamily: !Ref POperatingSystemFamily
+      #RequiresCompatibilities: !Ref PRequiresCompatibilities
+      # ExecutionRoleArn: !Ref PExecutionRoleArn
+      # TaskRoleArn: !Ref PTaskRoleArn
 
       ContainerDefinitions:
         - Name: !Ref PName
@@ -250,10 +270,14 @@ Resources:
               awslogs-create-group: !Ref Pawslogscreategroup
               mode: !Ref Pmode
               max-buffer-size: !Ref Pmaxbuffersize
+          Cpu: !Ref TaskCPU
+          RequiresCompatibilities: !Ref PRequiresCompatibilities
+          NetworkMode: !Ref PNetworkMode
+
 
   ECSService:
     Type: AWS::ECS::Service
-    DependsOn: LogGroup
+    # DependsOn: LogGroup
     Properties:
       ServiceName: !Ref ECSServiceName
       Cluster: !Ref ECSClusterName
@@ -261,6 +285,7 @@ Resources:
       LaunchType: !Ref PLaunchType
       PlatformVersion: !Ref PPlatformVersion
       SchedulingStrategy: !Ref PSchedulingStrategy
+
       TaskDefinition: !Ref TaskDefinition
 
       DeploymentController:
@@ -270,8 +295,8 @@ Resources:
         MaximumPercent: !Ref PMaximumPercent
         MinimumHealthyPercent: !Ref PMinimumHealthyPercent
         DeploymentCircuitBreaker:
-          Enable: !Equals [ !Ref PEnable, "true" ]
-          Rollback: !Equals [ !Ref PRollback, "true" ]
+          Enable: !Ref PEnable
+          Rollback: !Ref PRollback
 
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -279,41 +304,18 @@ Resources:
           SecurityGroups: !Ref SecurityGroupIds
           Subnets: !Ref SubnetIds
 
-      LoadBalancers:
-        Fn::If:
-          - HasLB
-          - 
-            - ContainerName: !Ref PName
-              ContainerPort: !Ref PContainerPort
-              TargetGroupArn: !Ref LoadBalancerName
-          - !Ref "AWS::NoValue"
+      # LoadBalancers:
+      #   Fn::If:
+      #     - HasLB
+      #     - - ContainerName: !Ref PName
+      #         ContainerPort: !Ref PContainerPort
+      #         TargetGroupArn: !Ref LoadBalancerName
+      #     - !Ref "AWS::NoValue"
 
       ServiceConnectConfiguration:
-        Fn::If:
-          - HasServiceConnect
-          - 
-            Enabled: true
+            Enabled: !Ref PServiceConnect
             Namespace: !Ref PNamespace
             Services:
               - PortName: !Ref PName1
-                ClientAliases:
+              - ClientAliases:
                   - Port: !Ref PClientAliasesPort
-          - !Ref "AWS::NoValue"
-
-
-Conditions:
-  HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
-  HasServiceConnect: !Equals [ !Ref PServiceConnect, "true" ]
-  HasSCNamespace: !Not [ !Equals [ !Ref PServiceConnectNamespace, "" ] ]
-
-
-Outputs:
-
-  ClusterName:
-    Value: !Ref ECSClusterName
-
-  ServiceName:
-    Value: !Ref ECSServiceName
-
-  TaskDefinitionArn:
-    Value: !Ref TaskDefinition
