@@ -1,319 +1,55 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: ECS Cluster, Task Definition and Service Template (fully corrected)
-
-Parameters:
-
-  ECSClusterName:
-    Type: String
-
-  TaskCPU:
-    Type: String
-    Default: "256"
-
-  TaskMemory:
-    Type: String
-    Default: "512"
-
-  SecurityGroupIds:
-    Type: CommaDelimitedList
-    Default: ""
-
-  VpcId:
-    Type: AWS::EC2::VPC::Id
-
-  SubnetIds:
-    Type: List<AWS::EC2::Subnet::Id>
-
-  LatestECSOptimizedAMI:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: "/aws/service/ecs/optimized-ami/amazon-linux-2/kernel-5.10/recommended/image_id"
-
-  DesiredTaskCount:
-    Type: Number
-    Default: 1
-
-  PLaunchType:
-    Type: String
-    Default: FARGATE
-
-  ECSServiceName:
-    Type: String
-    Default: my-service
-
-  LoadBalancerName:
-    Type: String
-    Default: ""
-
-  PSchedulingStrategy:
-    Type: String
-    Default: REPLICA
-
-  PAssignPublicIp:
-    Type: String
-    Default: DISABLED
-
-  PPlatformVersion:
-    Type: String
-    Default: LATEST
-
-  PMaximumPercent:
-    Type: Number
-    Default: 200
-
-  PMinimumHealthyPercent:
-    Type: Number
-    Default: 100
-
-  PDeploymentControllerType:
-    Type: String
-    Default: ECS
-
-  PEnable:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
-  PRollback:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
-  PCpuArchitecture:
-    Type: String
-    Default: X86_64
-
-  POperatingSystemFamily:
-    Type: String
-    Default: LINUX
-
-  PCpu:
-    Type: Number
-    Default: 0
-
-  PEssential:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
-  PName:
-    Type: String
-    Default: app
-
-  PAppProtocol:
-    Type: String
-    Default: http
-
-  PContainerPort:
-    Type: Number
-    Default: 8080
-
-  PHostPort:
-    Type: Number
-    Default: 8080
-
-  PProtocol:
-    Type: String
-    Default: tcp
-
-  PName1:
-    Type: String
-    Default: app-port
-
-  PEnvironmentName:
-    Type: String
-    Default: DOTNET_ENVIRONMENT
-
-  PEnvironmentValue:
-    Type: String
-    Default: Development
-
-  PlogDriver:
-    Type: String
-    Default: awslogs
-
-  PFamily:
-    Type: String
-    Default: my-task-family
-
-  PImage:
-    Type: String
-    Default: ""
-
-  Pawsloggroup:
-    Type: String
-    Default: /ecs/my-service
-
-  Pmode:
-    Type: String
-    Default: non-blocking
-
-  Pawslogscreategroup:
-    Type: String
-    Default: "true"
-
-  Pmaxbuffersize:
-    Type: Number
-    Default: 256
-
-  Pawslogsregion:
-    Type: String
-    Default: eu-central-1
-
-  Pawslogsstreamprefix:
-    Type: String
-    Default: ecs
-
-  PNetworkMode:
-    Type: String
-    Default: awsvpc
-
-  PCapacityProviders:
-    Type: CommaDelimitedList
-    Default: "FARGATE,FARGATE_SPOT"
-
-  PClusterSettingName:
-    Type: String
-    Default: containerInsights
-
-  PClusterSettingValues:
-    Type: String
-    Default: disabled
-
-  PServiceConnectNamespace:
-    Type: String
-    Default: ""
-
-  PRequiresCompatibilities:
-    Type: CommaDelimitedList
-    Default: "FARGATE"
-
-  PServiceConnect:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "false"
-
-  PNamespace:
-    Type: String
-    Default: ""
-
-  PClientAliasesPort:
-    Type: Number
-    Default: 8080
-
-  PRootFileSystemReadonly:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
-Resources:
-
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Ref Pawsloggroup
-      RetentionInDays: 30
-
-  TaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: !Ref PFamily
-      Cpu: !Ref TaskCPU
-      Memory: !Ref TaskMemory
-      NetworkMode: !Ref PNetworkMode
-      RequiresCompatibilities: !Ref PRequiresCompatibilities
-      RuntimePlatform:
-        CpuArchitecture: !Ref PCpuArchitecture
-        OperatingSystemFamily: !Ref POperatingSystemFamily
-
-      ContainerDefinitions:
-        - Name: !Ref PName
-          Image: !Ref PImage
-          Essential: !Ref PEssential
-          Cpu: !Ref PCpu
-          PortMappings:
-            - Name: !Ref PName1
-              ContainerPort: !Ref PContainerPort
-              HostPort: !Ref PHostPort
-              Protocol: !Ref PProtocol
-              AppProtocol: !Ref PAppProtocol
-
-          Environment:
-            - Name: !Ref PEnvironmentName
-              Value: !Ref PEnvironmentValue
-
-          ReadonlyRootFilesystem: !Ref PRootFileSystemReadonly
-
-          LogConfiguration:
-            LogDriver: !Ref PlogDriver
-            Options:
-              awslogs-group: !Ref Pawsloggroup
-              awslogs-region: !Ref Pawslogsregion
-              awslogs-stream-prefix: !Ref Pawslogsstreamprefix
-              awslogs-create-group: !Ref Pawslogscreategroup
-              mode: !Ref Pmode
-              max-buffer-size: !Ref Pmaxbuffersize
-
-  ECSService:
-    Type: AWS::ECS::Service
-    DependsOn: LogGroup
-    Properties:
-      ServiceName: !Ref ECSServiceName
-      Cluster: !Ref ECSClusterName
-      DesiredCount: !Ref DesiredTaskCount
-      LaunchType: !Ref PLaunchType
-      PlatformVersion: !Ref PPlatformVersion
-      SchedulingStrategy: !Ref PSchedulingStrategy
-      TaskDefinition: !Ref TaskDefinition
-
-      DeploymentController:
-        Type: !Ref PDeploymentControllerType
-
-      DeploymentConfiguration:
-        MaximumPercent: !Ref PMaximumPercent
-        MinimumHealthyPercent: !Ref PMinimumHealthyPercent
-        DeploymentCircuitBreaker:
-          Enable: !Equals [!Ref PEnable, "true"]
-          Rollback: !Equals [!Ref PRollback, "true"]
-
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: !Ref PAssignPublicIp
-          SecurityGroups: !Ref SecurityGroupIds
-          Subnets: !Ref SubnetIds
-
-      LoadBalancers:
-        Fn::If:
-          - HasLB
-          - 
-            - ContainerName: !Ref PName
-              ContainerPort: !Ref PContainerPort
-              TargetGroupArn: !Ref LoadBalancerName
-          - !Ref "AWS::NoValue"
-
-      ServiceConnectConfiguration:
-        Fn::If:
-          - HasServiceConnect
-          -
-            Enabled: true
-            Namespace: !Ref PNamespace
-            Services:
-              - PortName: !Ref PName1
-                ClientAliases:
-                  - Port: !Ref PClientAliasesPort
-          - !Ref "AWS::NoValue"
-
-Conditions:
-  HasLB: !Not [!Equals [!Ref LoadBalancerName, ""]]
-  HasServiceConnect: !Equals [!Ref PServiceConnect, "true"]
-  HasSCNamespace: !Not [!Equals [!Ref PServiceConnectNamespace, ""]]
-
-Outputs:
-
-  ClusterName:
-    Value: !Ref ECSClusterName
-
-  ServiceName:
-    Value: !Ref ECSServiceName
-
-  TaskDefinitionArn:
-    Value: !Ref TaskDefinition
+name: Build and Package Angular app - docker, ECR, ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Select the branch to run the workflow on'
+        required: true
+        default: 'main'   
+
+jobs:
+  buildangularapplication:
+    if: ${{ github.event.inputs.branch == 'main'}}
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+          
+      - name: Prepare Deployment Package
+        run: |
+          docker build -t my-angular-app -f DockerFile .
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 041063310378.dkr.ecr.eu-central-1.amazonaws.com
+          docker tag my-angular-app:latest 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
+          docker push 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest
+          
+
+  deployinfraangularapplication:
+    if: ${{ github.event.inputs.branch == 'main'}}
+    runs-on: self-hosted
+    needs: buildangularapplication
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+          
+      - name: Verify code on main branch
+        run: |
+          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-0aa705a7453ca7cf9 VpcId=vpc-0393ab23f063990ec SubnetIds=subnet-0361847b00918b1a3,subnet-0239791e2d903ed84 ECSServiceName=MyECSService PAssignPublicIp=Disabled PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:dockerimage PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-synvb4nzja35kngu PContainerPort=8080 PHostPort=8080 PServiceConnect=true PClientAliasesPort=8080 PRootFileSystemReadonly=true
+
+  updateangularapplication:
+    if: ${{ github.event.inputs.branch == 'main'}}
+    runs-on: self-hosted
+    needs: deployinfraangularapplication
+    steps: 
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Verify code on develop branch
+        run: aws ecs update-service --cluster MyEcsCluster --service MyEcsService --force-new-deployment
