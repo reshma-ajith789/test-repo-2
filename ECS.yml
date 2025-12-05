@@ -236,13 +236,13 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Ref PFamily
-      # Cpu: !Ref TaskCPU
+      Cpu: !Ref TaskCPU
       Memory: !Ref TaskMemory
-      # NetworkMode: !Ref PNetworkMode
+      NetworkMode: !Ref PNetworkMode
       RuntimePlatform:
         CpuArchitecture: !Ref PCpuArchitecture
         OperatingSystemFamily: !Ref POperatingSystemFamily
-      #RequiresCompatibilities: !Ref PRequiresCompatibilities
+      RequiresCompatibilities: !Ref PRequiresCompatibilities
       # ExecutionRoleArn: !Ref PExecutionRoleArn
       # TaskRoleArn: !Ref PTaskRoleArn
 
@@ -270,9 +270,9 @@ Resources:
               awslogs-create-group: !Ref Pawslogscreategroup
               mode: !Ref Pmode
               max-buffer-size: !Ref Pmaxbuffersize
-          Cpu: !Ref TaskCPU
-          RequiresCompatibilities: !Ref PRequiresCompatibilities
-          NetworkMode: !Ref PNetworkMode
+          # Cpu: !Ref TaskCPU
+          # RequiresCompatibilities: !Ref PRequiresCompatibilities
+          # NetworkMode: !Ref PNetworkMode
 
 
   ECSService:
@@ -319,3 +319,4 @@ Resources:
               - PortName: !Ref PName1
               - ClientAliases:
                   - Port: !Ref PClientAliasesPort
+
