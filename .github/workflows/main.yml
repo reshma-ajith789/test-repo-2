@@ -282,7 +282,8 @@ Resources:
       LoadBalancers:
         Fn::If:
           - HasLB
-          - - ContainerName: !Ref PName
+          - 
+            - ContainerName: !Ref PName
               ContainerPort: !Ref PContainerPort
               TargetGroupArn: !Ref LoadBalancerName
           - !Ref "AWS::NoValue"
@@ -290,7 +291,8 @@ Resources:
       ServiceConnectConfiguration:
         Fn::If:
           - HasServiceConnect
-          - Enabled: true
+          - 
+            Enabled: true
             Namespace: !Ref PNamespace
             Services:
               - PortName: !Ref PName1
