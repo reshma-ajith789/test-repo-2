@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ECS Cluster, Task Definition and Service Template (with realistic default values)
+Description: ECS Cluster, Task Definition and Service Template (corrected types and unique env vars)
 
 Parameters:
 
@@ -15,7 +15,7 @@ Parameters:
     Default: '512'
 
   SecurityGroupIds:
-    Type: AWS::EC2::SecurityGroup::Id
+    Type: CommaDelimitedList
     Default: ''
 
   VpcId:
@@ -67,11 +67,11 @@ Parameters:
     Default: 100
 
   PEnable:
-    Type: String
+    Type: Boolean
     Default: true
 
   PRollback:
-    Type: String
+    Type: Boolean
     Default: true
 
   PDeploymentControllerType:
@@ -91,7 +91,7 @@ Parameters:
     Default: 0
 
   PEssential:
-    Type: String
+    Type: Boolean
     Default: true
 
   PName:
@@ -126,14 +126,6 @@ Parameters:
     Type: String
     Default: Development
 
-  PEnvironmentName1:
-    Type: String
-    Default: DOTNET_ENVIRONMENT
-
-  PEnvironmentValue1:
-    Type: String
-    Default: Development
-
   PlogDriver:
     Type: String
     Default: awslogs
@@ -141,14 +133,6 @@ Parameters:
   PFamily:
     Type: String
     Default: my-task-family
-
-  # PExecutionRoleArn:
-  #   Type: String
-  #   Default: arn:aws:iam::123456789012:role/ecsTaskExecutionRole
-
-  # PTaskRoleArn:
-  #   Type: String
-  #   Default: arn:aws:iam::123456789012:role/ecsTaskRole
 
   PImage:
     Type: String
@@ -164,7 +148,7 @@ Parameters:
 
   Pawslogscreategroup:
     Type: String
-    Default: true
+    Default: 'true'
 
   Pmaxbuffersize:
     Type: Number
@@ -199,11 +183,11 @@ Parameters:
     Default: ''
 
   PRequiresCompatibilities:
-    Type: String
-    Default: FARGATE
+    Type: CommaDelimitedList
+    Default: "FARGATE"
 
   PServiceConnect:
-    Type: String
+    Type: Boolean
     Default: false
 
   PNamespace:
@@ -215,25 +199,10 @@ Parameters:
     Default: 8080
 
   PRootFileSystemReadonly:
-    Type: String
+    Type: Boolean
     Default: true
 
-
 Resources:
-
-  #ECSCluster:
-    #Type: AWS::ECS::Cluster
-    #Properties:
-      #ClusterName: !Ref ECSClusterName
-      #CapacityProviders: !Ref PCapacityProviders
-      #ClusterSettings:
-       # - Name: !Ref PClusterSettingName
-        #  Value: !Ref PClusterSettingValues
-      #ServiceConnectDefaults:
-       # Fn::If:
-       #   - HasSCNamespace
-       #   - Namespace: !Ref PServiceConnectNamespace
-       #   - !Ref "AWS::NoValue"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -245,16 +214,13 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Ref PFamily
-      Cpu: !Ref TaskCPU
+      Cpu: !Ref TaskCPU           # For FARGATE these are strings like "256"
       Memory: !Ref TaskMemory
       NetworkMode: !Ref PNetworkMode
       RuntimePlatform:
         CpuArchitecture: !Ref PCpuArchitecture
         OperatingSystemFamily: !Ref POperatingSystemFamily
       RequiresCompatibilities: !Ref PRequiresCompatibilities
-      # ExecutionRoleArn: !Ref PExecutionRoleArn
-      # TaskRoleArn: !Ref PTaskRoleArn
-
       ContainerDefinitions:
         - Name: !Ref PName
           Image: !Ref PImage
@@ -269,8 +235,6 @@ Resources:
           Environment:
             - Name: !Ref PEnvironmentName
               Value: !Ref PEnvironmentValue
-            - Name: !Ref PEnvironmentName1
-              Value: !Ref PEnvironmentValue1
           ReadonlyRootFilesystem: !Ref PRootFileSystemReadonly
           LogConfiguration:
             LogDriver: !Ref PlogDriver
@@ -282,7 +246,6 @@ Resources:
               mode: !Ref Pmode
               max-buffer-size: !Ref Pmaxbuffersize
 
-
   ECSService:
     Type: AWS::ECS::Service
     DependsOn: LogGroup
@@ -293,25 +256,20 @@ Resources:
       LaunchType: !Ref PLaunchType
       PlatformVersion: !Ref PPlatformVersion
       SchedulingStrategy: !Ref PSchedulingStrategy
-
       TaskDefinition: !Ref TaskDefinition
-
       DeploymentController:
         Type: !Ref PDeploymentControllerType
-
       DeploymentConfiguration:
         MaximumPercent: !Ref PMaximumPercent
         MinimumHealthyPercent: !Ref PMinimumHealthyPercent
         DeploymentCircuitBreaker:
           Enable: !Ref PEnable
           Rollback: !Ref PRollback
-
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: !Ref PAssignPublicIp
           SecurityGroups: !Ref SecurityGroupIds
           Subnets: !Ref SubnetIds
-
       LoadBalancers:
         Fn::If:
           - HasLB
@@ -319,7 +277,6 @@ Resources:
               ContainerPort: !Ref PContainerPort
               TargetGroupArn: !Ref LoadBalancerName
           - !Ref "AWS::NoValue"
-
       ServiceConnectConfiguration:
         Fn::If:
           - HasServiceConnect
@@ -330,7 +287,6 @@ Resources:
                 ClientAliases:
                   - Port: !Ref PClientAliasesPort
           - !Ref "AWS::NoValue"
-
 
 Conditions:
   HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
@@ -347,6 +303,3 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref TaskDefinition
-
-
-
