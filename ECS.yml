@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ECS Cluster, Task Definition and Service Template (corrected types and unique env vars)
+Description: ECS Cluster, Task Definition and Service Template (fully corrected)
 
 Parameters:
 
@@ -8,23 +8,21 @@ Parameters:
 
   TaskCPU:
     Type: String
-    Default: '256'
+    Default: "256"
 
   TaskMemory:
     Type: String
-    Default: '512'
+    Default: "512"
 
   SecurityGroupIds:
     Type: CommaDelimitedList
-    Default: ''
+    Default: ""
 
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Default: ''
 
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-    Default: ''
 
   LatestECSOptimizedAMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -44,7 +42,7 @@ Parameters:
 
   LoadBalancerName:
     Type: String
-    Default: ''
+    Default: ""
 
   PSchedulingStrategy:
     Type: String
@@ -66,17 +64,19 @@ Parameters:
     Type: Number
     Default: 100
 
-  PEnable:
-    Type: Boolean
-    Default: true
-
-  PRollback:
-    Type: Boolean
-    Default: true
-
   PDeploymentControllerType:
     Type: String
     Default: ECS
+
+  PEnable:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+
+  PRollback:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
 
   PCpuArchitecture:
     Type: String
@@ -91,8 +91,9 @@ Parameters:
     Default: 0
 
   PEssential:
-    Type: Boolean
-    Default: true
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
 
   PName:
     Type: String
@@ -136,7 +137,7 @@ Parameters:
 
   PImage:
     Type: String
-    Default: ''
+    Default: ""
 
   Pawsloggroup:
     Type: String
@@ -148,7 +149,7 @@ Parameters:
 
   Pawslogscreategroup:
     Type: String
-    Default: 'true'
+    Default: "true"
 
   Pmaxbuffersize:
     Type: Number
@@ -180,27 +181,30 @@ Parameters:
 
   PServiceConnectNamespace:
     Type: String
-    Default: ''
+    Default: ""
 
   PRequiresCompatibilities:
     Type: CommaDelimitedList
     Default: "FARGATE"
 
   PServiceConnect:
-    Type: Boolean
-    Default: false
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
 
   PNamespace:
     Type: String
-    Default: ''
+    Default: ""
 
   PClientAliasesPort:
     Type: Number
     Default: 8080
 
   PRootFileSystemReadonly:
-    Type: Boolean
-    Default: true
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+
 
 Resources:
 
@@ -214,13 +218,14 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Ref PFamily
-      Cpu: !Ref TaskCPU           # For FARGATE these are strings like "256"
+      Cpu: !Ref TaskCPU
       Memory: !Ref TaskMemory
       NetworkMode: !Ref PNetworkMode
+      RequiresCompatibilities: !Ref PRequiresCompatibilities
       RuntimePlatform:
         CpuArchitecture: !Ref PCpuArchitecture
         OperatingSystemFamily: !Ref POperatingSystemFamily
-      RequiresCompatibilities: !Ref PRequiresCompatibilities
+
       ContainerDefinitions:
         - Name: !Ref PName
           Image: !Ref PImage
@@ -257,30 +262,37 @@ Resources:
       PlatformVersion: !Ref PPlatformVersion
       SchedulingStrategy: !Ref PSchedulingStrategy
       TaskDefinition: !Ref TaskDefinition
+
       DeploymentController:
         Type: !Ref PDeploymentControllerType
+
       DeploymentConfiguration:
         MaximumPercent: !Ref PMaximumPercent
         MinimumHealthyPercent: !Ref PMinimumHealthyPercent
         DeploymentCircuitBreaker:
-          Enable: !Ref PEnable
-          Rollback: !Ref PRollback
+          Enable: !Equals [ !Ref PEnable, "true" ]
+          Rollback: !Equals [ !Ref PRollback, "true" ]
+
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: !Ref PAssignPublicIp
           SecurityGroups: !Ref SecurityGroupIds
           Subnets: !Ref SubnetIds
+
       LoadBalancers:
         Fn::If:
           - HasLB
-          - - ContainerName: !Ref PName
+          - 
+            - ContainerName: !Ref PName
               ContainerPort: !Ref PContainerPort
               TargetGroupArn: !Ref LoadBalancerName
           - !Ref "AWS::NoValue"
+
       ServiceConnectConfiguration:
         Fn::If:
           - HasServiceConnect
-          - Enabled: true
+          - 
+            Enabled: true
             Namespace: !Ref PNamespace
             Services:
               - PortName: !Ref PName1
@@ -288,10 +300,12 @@ Resources:
                   - Port: !Ref PClientAliasesPort
           - !Ref "AWS::NoValue"
 
+
 Conditions:
   HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
-  HasServiceConnect: !Equals [ !Ref PServiceConnect, true ]
+  HasServiceConnect: !Equals [ !Ref PServiceConnect, "true" ]
   HasSCNamespace: !Not [ !Equals [ !Ref PServiceConnectNamespace, "" ] ]
+
 
 Outputs:
 
