@@ -135,6 +135,14 @@ Parameters:
     Type: String
     Default: my-task-family
 
+  PExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::041063310378:role/ecsTaskExecutionRole
+
+  PTaskRoleArn:
+    Type: String
+    Default: arn:aws:iam::041063310378:role/ecsTaskRole
+
   PImage:
     Type: String
     Default: ""
@@ -220,10 +228,12 @@ Resources:
       Cpu: !Ref TaskCPU
       Memory: !Ref TaskMemory
       NetworkMode: !Ref PNetworkMode
-      RequiresCompatibilities: !Ref PRequiresCompatibilities
       RuntimePlatform:
         CpuArchitecture: !Ref PCpuArchitecture
         OperatingSystemFamily: !Ref POperatingSystemFamily
+      RequiresCompatibilities: !Ref PRequiresCompatibilities
+      ExecutionRoleArn: !Ref PExecutionRoleArn
+      TaskRoleArn: !Ref PTaskRoleArn
 
       ContainerDefinitions:
         - Name: !Ref PName
@@ -339,3 +349,4 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref TaskDefinition
+
