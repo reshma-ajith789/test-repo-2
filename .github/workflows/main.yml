@@ -205,7 +205,6 @@ Parameters:
     AllowedValues: ["true", "false"]
     Default: "true"
 
-
 Resources:
 
   LogGroup:
@@ -237,10 +236,13 @@ Resources:
               HostPort: !Ref PHostPort
               Protocol: !Ref PProtocol
               AppProtocol: !Ref PAppProtocol
+
           Environment:
             - Name: !Ref PEnvironmentName
               Value: !Ref PEnvironmentValue
+
           ReadonlyRootFilesystem: !Ref PRootFileSystemReadonly
+
           LogConfiguration:
             LogDriver: !Ref PlogDriver
             Options:
@@ -270,8 +272,8 @@ Resources:
         MaximumPercent: !Ref PMaximumPercent
         MinimumHealthyPercent: !Ref PMinimumHealthyPercent
         DeploymentCircuitBreaker:
-          Enable: !Equals [ !Ref PEnable, "true" ]
-          Rollback: !Equals [ !Ref PRollback, "true" ]
+          Enable: !Equals [!Ref PEnable, "true"]
+          Rollback: !Equals [!Ref PRollback, "true"]
 
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -291,7 +293,7 @@ Resources:
       ServiceConnectConfiguration:
         Fn::If:
           - HasServiceConnect
-          - 
+          -
             Enabled: true
             Namespace: !Ref PNamespace
             Services:
@@ -300,14 +302,13 @@ Resources:
                   - Port: !Ref PClientAliasesPort
           - !Ref "AWS::NoValue"
 
-
 Conditions:
-  HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
-  HasServiceConnect: !Equals [ !Ref PServiceConnect, "true" ]
-  HasSCNamespace: !Not [ !Equals [ !Ref PServiceConnectNamespace, "" ] ]
-
+  HasLB: !Not [!Equals [!Ref LoadBalancerName, ""]]
+  HasServiceConnect: !Equals [!Ref PServiceConnect, "true"]
+  HasSCNamespace: !Not [!Equals [!Ref PServiceConnectNamespace, ""]]
 
 Outputs:
+
   ClusterName:
     Value: !Ref ECSClusterName
 
