@@ -1,7 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ECS Cluster, Task Definition and Service Template (fully corrected)
+Description: ECS Cluster, Task Definition and Service (using existing ALB + Target Group)
 
 Parameters:
+
   ECSClusterName:
     Type: String
 
@@ -15,17 +16,12 @@ Parameters:
 
   SecurityGroupIds:
     Type: CommaDelimitedList
-    Default: ""
 
   VpcId:
     Type: AWS::EC2::VPC::Id
 
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-
-  LatestECSOptimizedAMI:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: "/aws/service/ecs/optimized-ami/amazon-linux-2/kernel-5.10/recommended/image_id"
 
   DesiredTaskCount:
     Type: Number
@@ -39,9 +35,9 @@ Parameters:
     Type: String
     Default: my-service
 
-  LoadBalancerName:
+  TargetGroupArn:
     Type: String
-    Default: ""
+    Description: Provide the ARN of an existing target group
 
   PSchedulingStrategy:
     Type: String
@@ -49,7 +45,7 @@ Parameters:
 
   PAssignPublicIp:
     Type: String
-    Default: DISABLED
+    Default: ENABLED
 
   PPlatformVersion:
     Type: String
@@ -67,16 +63,6 @@ Parameters:
     Type: String
     Default: ECS
 
-  PEnable:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
-  PRollback:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
   PCpuArchitecture:
     Type: String
     Default: X86_64
@@ -89,11 +75,6 @@ Parameters:
     Type: Number
     Default: 0
 
-  PEssential:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
   PName:
     Type: String
     Default: app
@@ -104,27 +85,15 @@ Parameters:
 
   PContainerPort:
     Type: Number
-    Default: 8080
+    Default: 80    # your Angular runs on 80
 
   PHostPort:
     Type: Number
-    Default: 8080
+    Default: 80
 
   PProtocol:
     Type: String
     Default: tcp
-
-  PName1:
-    Type: String
-    Default: app-port
-
-  PEnvironmentName:
-    Type: String
-    Default: DOTNET_ENVIRONMENT
-
-  PEnvironmentValue:
-    Type: String
-    Default: Development
 
   PlogDriver:
     Type: String
@@ -150,18 +119,6 @@ Parameters:
     Type: String
     Default: /ecs/my-service
 
-  Pmode:
-    Type: String
-    Default: non-blocking
-
-  Pawslogscreategroup:
-    Type: String
-    Default: "true"
-
-  Pmaxbuffersize:
-    Type: Number
-    Default: 256
-
   Pawslogsregion:
     Type: String
     Default: eu-central-1
@@ -173,54 +130,6 @@ Parameters:
   PNetworkMode:
     Type: String
     Default: awsvpc
-
-  PCapacityProviders:
-    Type: CommaDelimitedList
-    Default: "FARGATE,FARGATE_SPOT"
-
-  PClusterSettingName:
-    Type: String
-    Default: containerInsights
-
-  PClusterSettingValues:
-    Type: String
-    Default: disabled
-
-  PServiceConnectNamespace:
-    Type: String
-    Default: ""
-
-  PRequiresCompatibilities:
-    Type: CommaDelimitedList
-    Default: "FARGATE"
-
-  PServiceConnect:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "false"
-
-  PNamespace:
-    Type: String
-    Default: ""
-
-  PClientAliasesPort:
-    Type: Number
-    Default: 8080
-
-  PRootFileSystemReadonly:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "true"
-
-Conditions:
-  HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
-  HasServiceConnect: !Equals [ !Ref PServiceConnect, "true" ]
-  HasSCNamespace: !Not [ !Equals [ !Ref PServiceConnectNamespace, "" ] ]
-
-  EnableCB: !Equals [ !Ref PEnable, "true" ]
-  RollbackCB: !Equals [ !Ref PRollback, "true" ]
-  PEssentialTrue: !Equals [ !Ref PEssential, "true" ]
-  PRootReadOnlyTrue: !Equals [ !Ref PRootFileSystemReadonly, "true" ]
 
 Resources:
 
@@ -240,54 +149,27 @@ Resources:
       RuntimePlatform:
         CpuArchitecture: !Ref PCpuArchitecture
         OperatingSystemFamily: !Ref POperatingSystemFamily
-      RequiresCompatibilities: !Ref PRequiresCompatibilities
+      RequiresCompatibilities: ["FARGATE"]
       ExecutionRoleArn: !Ref PExecutionRoleArn
       TaskRoleArn: !Ref PTaskRoleArn
-
-      Volumes:
-        - Name: nginx-cache
-          Host: {}
-        - Name: run-tmp
-          Host: {}
 
       ContainerDefinitions:
         - Name: !Ref PName
           Image: !Ref PImage
-          Essential:
-            Fn::If:
-              - PEssentialTrue
-              - true
-              - false
+          Essential: true
           Cpu: !Ref PCpu
           PortMappings:
-            - Name: !Ref PName1
+            - Name: app-port
               ContainerPort: !Ref PContainerPort
               HostPort: !Ref PHostPort
               Protocol: !Ref PProtocol
               AppProtocol: !Ref PAppProtocol
-          Environment:
-            - Name: !Ref PEnvironmentName
-              Value: !Ref PEnvironmentValue
-          ReadonlyRootFilesystem:
-            Fn::If:
-              - PRootReadOnlyTrue
-              - true
-              - false
           LogConfiguration:
-            LogDriver: !Ref PlogDriver
+            LogDriver: awslogs
             Options:
               awslogs-group: !Ref Pawsloggroup
               awslogs-region: !Ref Pawslogsregion
               awslogs-stream-prefix: !Ref Pawslogsstreamprefix
-              awslogs-create-group: !Ref Pawslogscreategroup
-              mode: !Ref Pmode
-              max-buffer-size: !Ref Pmaxbuffersize
-
-          MountPoints:
-            - SourceVolume: nginx-cache
-              ContainerPath: /var/cache/nginx
-            - SourceVolume: run-tmp
-              ContainerPath: /run
 
   ECSService:
     Type: AWS::ECS::Service
@@ -298,7 +180,7 @@ Resources:
       DesiredCount: !Ref DesiredTaskCount
       LaunchType: !Ref PLaunchType
       PlatformVersion: !Ref PPlatformVersion
-      SchedulingStrategy: !Ref PSchedulingStrategy
+      SchedulingStrategy: REPLICA
       TaskDefinition: !Ref TaskDefinition
 
       DeploymentController:
@@ -307,17 +189,6 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: !Ref PMaximumPercent
         MinimumHealthyPercent: !Ref PMinimumHealthyPercent
-        DeploymentCircuitBreaker:
-          Enable:
-            Fn::If:
-              - EnableCB
-              - true
-              - false
-          Rollback:
-            Fn::If:
-              - RollbackCB
-              - true
-              - false
 
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -326,25 +197,9 @@ Resources:
           Subnets: !Ref SubnetIds
 
       LoadBalancers:
-        Fn::If:
-          - HasLB
-          - 
-            - ContainerName: !Ref PName
-              ContainerPort: !Ref PContainerPort
-              TargetGroupArn: !Ref LoadBalancerName
-          - !Ref AWS::NoValue
-
-      ServiceConnectConfiguration:
-        Fn::If:
-          - HasServiceConnect
-          - 
-            Enabled: true
-            Namespace: !Ref PNamespace
-            Services:
-              - PortName: !Ref PName1
-                ClientAliases:
-                  - Port: !Ref PClientAliasesPort
-          - !Ref AWS::NoValue
+        - ContainerName: !Ref PName
+          ContainerPort: !Ref PContainerPort
+          TargetGroupArn: !Ref TargetGroupArn
 
 Outputs:
 
