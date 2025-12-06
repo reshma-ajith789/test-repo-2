@@ -48,7 +48,7 @@ jobs:
           
       - name: Verify code on main branch
         run: |
-          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-0d076bf99f2df0630 VpcId=vpc-0393ab23f063990ec SubnetIds=subnet-08f462f6fee70c8aa,subnet-0bb8c62fdef1611e7 ECSServiceName=MyECSService PAssignPublicIp=ENABLED PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-synvb4nzja35kngu PContainerPort=8080 PHostPort=8080 PServiceConnect=true PClientAliasesPort=8080 PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole PRootFileSystemReadonly=true
+          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-01ce5a594de3e38e6 VpcId=vpc-06db68a89867ae74d SubnetIds=subnet-086c1f6b85b8837d6,subnet-054074c9dcce0e6b9 ECSServiceName=MyECSService PAssignPublicIp=ENABLED PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-q75an3n4ynwikzvq PContainerPort=8080 PHostPort=8080 PServiceConnect=true PClientAliasesPort=8080 PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole PRootFileSystemReadonly=true
 
   updateangularapplication:
     if: ${{ github.event.inputs.branch == 'main'}}
