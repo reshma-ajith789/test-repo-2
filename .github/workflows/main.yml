@@ -6,7 +6,16 @@ on:
       branch:
         description: 'Select the branch to run the workflow on'
         required: true
-        default: 'main'   
+        default: 'main'
+        
+      run_optional_jobs:
+        description: 'Do you want to run the Optional Jobs?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   buildangularapplication:
@@ -28,7 +37,7 @@ jobs:
           
 
   deployinfraangularapplication:
-    if: ${{ github.event.inputs.branch == 'main'}}
+    if: ${{ github.event.inputs.branch == 'main' && github.event.inputs.run_optional_jobs == 'true'}}
     runs-on: self-hosted
     needs: buildangularapplication
     steps:
