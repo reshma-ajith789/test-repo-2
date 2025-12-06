@@ -213,6 +213,18 @@ Parameters:
     AllowedValues: ["true", "false"]
     Default: "true"
 
+Conditions:
+  # existing conditions
+  HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
+  HasServiceConnect: !Equals [ !Ref PServiceConnect, "true" ]
+  HasSCNamespace: !Not [ !Equals [ !Ref PServiceConnectNamespace, "" ] ]
+
+  # new conditions for boolean conversion
+  EnableCB: !Equals [ !Ref PEnable, "true" ]
+  RollbackCB: !Equals [ !Ref PRollback, "true" ]
+  PEssentialTrue: !Equals [ !Ref PEssential, "true" ]
+  PRootReadOnlyTrue: !Equals [ !Ref PRootFileSystemReadonly, "true" ]
+
 Resources:
 
   LogGroup:
@@ -234,11 +246,14 @@ Resources:
       RequiresCompatibilities: !Ref PRequiresCompatibilities
       ExecutionRoleArn: !Ref PExecutionRoleArn
       TaskRoleArn: !Ref PTaskRoleArn
+      
+      Volumes:
+        - Name: nginx-cache
+          Host: {}
 
       ContainerDefinitions:
         - Name: !Ref PName
           Image: !Ref PImage
-          # Essential expects a boolean → use Fn::If driven by a condition
           Essential:
             Fn::If:
               - PEssentialTrue
@@ -254,7 +269,6 @@ Resources:
           Environment:
             - Name: !Ref PEnvironmentName
               Value: !Ref PEnvironmentValue
-          # ReadonlyRootFilesystem expects a boolean → use Fn::If
           ReadonlyRootFilesystem:
             Fn::If:
               - PRootReadOnlyTrue
@@ -269,6 +283,10 @@ Resources:
               awslogs-create-group: !Ref Pawslogscreategroup
               mode: !Ref Pmode
               max-buffer-size: !Ref Pmaxbuffersize
+
+          MountPoints:
+            - SourceVolume: nginx-cache
+              ContainerPath: /var/cache/nginx
 
   ECSService:
     Type: AWS::ECS::Service
@@ -327,18 +345,6 @@ Resources:
                   - Port: !Ref PClientAliasesPort
           - !Ref AWS::NoValue
 
-Conditions:
-  # existing conditions
-  HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
-  HasServiceConnect: !Equals [ !Ref PServiceConnect, "true" ]
-  HasSCNamespace: !Not [ !Equals [ !Ref PServiceConnectNamespace, "" ] ]
-
-  # new conditions for boolean conversion
-  EnableCB: !Equals [ !Ref PEnable, "true" ]
-  RollbackCB: !Equals [ !Ref PRollback, "true" ]
-  PEssentialTrue: !Equals [ !Ref PEssential, "true" ]
-  PRootReadOnlyTrue: !Equals [ !Ref PRootFileSystemReadonly, "true" ]
-
 Outputs:
 
   ClusterName:
@@ -349,4 +355,3 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref TaskDefinition
-
