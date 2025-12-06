@@ -2,7 +2,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: ECS Cluster, Task Definition and Service Template (fully corrected)
 
 Parameters:
-
   ECSClusterName:
     Type: String
 
@@ -214,12 +213,10 @@ Parameters:
     Default: "true"
 
 Conditions:
-  # existing conditions
   HasLB: !Not [ !Equals [ !Ref LoadBalancerName, "" ] ]
   HasServiceConnect: !Equals [ !Ref PServiceConnect, "true" ]
   HasSCNamespace: !Not [ !Equals [ !Ref PServiceConnectNamespace, "" ] ]
 
-  # new conditions for boolean conversion
   EnableCB: !Equals [ !Ref PEnable, "true" ]
   RollbackCB: !Equals [ !Ref PRollback, "true" ]
   PEssentialTrue: !Equals [ !Ref PEssential, "true" ]
@@ -246,9 +243,11 @@ Resources:
       RequiresCompatibilities: !Ref PRequiresCompatibilities
       ExecutionRoleArn: !Ref PExecutionRoleArn
       TaskRoleArn: !Ref PTaskRoleArn
-      
+
       Volumes:
         - Name: nginx-cache
+          Host: {}
+        - Name: run-tmp
           Host: {}
 
       ContainerDefinitions:
@@ -287,6 +286,8 @@ Resources:
           MountPoints:
             - SourceVolume: nginx-cache
               ContainerPath: /var/cache/nginx
+            - SourceVolume: run-tmp
+              ContainerPath: /run
 
   ECSService:
     Type: AWS::ECS::Service
@@ -336,7 +337,7 @@ Resources:
       ServiceConnectConfiguration:
         Fn::If:
           - HasServiceConnect
-          -
+          - 
             Enabled: true
             Namespace: !Ref PNamespace
             Services:
