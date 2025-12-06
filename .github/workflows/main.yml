@@ -61,4 +61,4 @@ jobs:
           ref: ${{ inputs.branch }}
 
       - name: Verify code on develop branch
-        run: aws ecs update-service --cluster MyEcsCluster --service MyEcsService --force-new-deployment
+        run: aws ecs update-service --cluster MyEcsCluster --service MyECSService --force-new-deployment
