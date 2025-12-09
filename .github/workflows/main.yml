@@ -48,8 +48,8 @@ jobs:
           
       - name: Verify code on main branch
         run: |
-          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-01ce5a594de3e38e6 VpcId=vpc-06db68a89867ae74d SubnetIds=subnet-086c1f6b85b8837d6,subnet-054074c9dcce0e6b9 ECSServiceName=MyECSService PAssignPublicIp=ENABLED PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-q75an3n4ynwikzvq PContainerPort=80 PHostPort=80 PServiceConnect=true PClientAliasesPort=80 PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole PRootFileSystemReadonly=true TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/target-group/d6250b43c6608c53
-
+          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-0c3915ac0dd49a156 VpcId=vpc-0b1390401616379b4 SubnetIds=subnet-0a167bb7956775387,subnet-0cd139d5d18e90c6f ECSServiceName=MyECSService PAssignPublicIp=ENABLED PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:latest PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-2ysmroggyko7gck7 PContainerPort=80 PHostPort=80 PServiceConnect=true PClientAliasesPort=80 PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole PRootFileSystemReadonly=true TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/target-group/43519d20e1368463
+  
   updateangularapplication:
     if: ${{ github.event.inputs.branch == 'main'}}
     runs-on: self-hosted
