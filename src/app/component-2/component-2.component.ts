@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   styleUrl: './component-2.component.css'
 })
 export class Component2Component {
-
+  password = "admin123"
 }
