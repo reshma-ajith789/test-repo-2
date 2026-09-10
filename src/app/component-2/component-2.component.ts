@@ -7,4 +7,9 @@ import { Component } from '@angular/core';
 })
 export class Component2Component {
   password = "admin123"
+
+    test() {
+    const unusedVariable = 'hello';
+  }
+
 }
