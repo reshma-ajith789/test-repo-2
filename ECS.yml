@@ -45,7 +45,7 @@ Parameters:
 
   PAssignPublicIp:
     Type: String
-    Default: ENABLED
+    Default: DISABLED
 
   PPlatformVersion:
     Type: String
@@ -211,3 +211,4 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref TaskDefinition
+

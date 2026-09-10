@@ -27,6 +27,23 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=Test2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           
       - name: Prepare Deployment Package
         run: |
@@ -48,7 +65,7 @@ jobs:
           
       - name: Verify code on main branch
         run: |
-          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-0589636e41d944f32 VpcId=vpc-073ff1a0fa95f2e8c SubnetIds=subnet-030b8a157549de7fa,subnet-0dcd5568f2fa79208 ECSServiceName=MyECSService PAssignPublicIp=ENABLED PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:my-angular-app PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-2ysmroggyko7gck7 PContainerPort=80 PHostPort=80 PServiceConnect=true PClientAliasesPort=80 PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole PRootFileSystemReadonly=true TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/tg/e66089991c53fd1c Pawsloggroup=/ecs/ecs-service-1
+          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-0e37370f5c0bf5006 VpcId=vpc-0a18088fc46b30353 SubnetIds=subnet-0aef17cc05e90c20e,subnet-07a337ef3967268b4 ECSServiceName=MyECSService PAssignPublicIp=ENABLED PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:my-angular-app PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-2ysmroggyko7gck7 PContainerPort=80 PHostPort=80 PServiceConnect=true PClientAliasesPort=80 PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole PRootFileSystemReadonly=true TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/tg/b91672fd2c1c06e0 Pawsloggroup=/ecs/ecs-service-1
   
   updateangularapplication1:
     if: ${{ github.event.inputs.branch == 'main'}}
