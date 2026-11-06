@@ -37,6 +37,9 @@ jobs:
         with:
           role-to-assume: "arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role"
           aws-region: "eu-central-1"
+
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
           
       - name: Prepare Deployment Package
         run: |
@@ -55,6 +58,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role
+          aws-region: eu-central-1
           
       - name: Verify code on main branch
         run: |
@@ -69,6 +78,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role
+          aws-region: eu-central-1
 
       - name: Verify code on develop branch
         run: aws ecs update-service --cluster MyEcsCluster --service MyECSService --force-new-deployment
