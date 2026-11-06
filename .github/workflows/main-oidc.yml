@@ -42,7 +42,7 @@ jobs:
         run: aws sts get-caller-identity
           
       - name: Prepare Deployment Package
-        env:
+        # env:
           # BUILDX_NO_DEFAULT_ATTESTATIONS: 1
         run: |
           docker build -t my-angular-app -f DockerFile .
