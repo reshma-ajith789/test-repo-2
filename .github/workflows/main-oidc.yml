@@ -1,0 +1,74 @@
+name: Build and Package Angular app - docker, ECR, ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Select the branch to run the workflow on'
+        required: true
+        default: 'main'
+        
+      run_optional_jobs:
+        description: 'Do you want to run the Optional Jobs?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  buildangularapplication1:
+    if: ${{ github.event.inputs.branch == 'main'}}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: "arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role"
+          aws-region: "eu-central-1"
+          
+      - name: Prepare Deployment Package
+        run: |
+          docker build -t my-angular-app -f DockerFile .
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 041063310378.dkr.ecr.eu-central-1.amazonaws.com
+          docker tag my-angular-app:latest 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:my-angular-app
+          docker push 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:my-angular-app
+          
+
+  deployinfraangularapplication1:
+    if: ${{ github.event.inputs.branch == 'main' && github.event.inputs.run_optional_jobs == 'true'}}
+    runs-on: ubuntu-latest
+    needs: buildangularapplication1
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+          
+      - name: Verify code on main branch
+        run: |
+          aws cloudformation deploy --template-file ECS.yml --stack-name MyEcsStack --parameter-overrides ECSClusterName=MyEcsCluster TaskCPU=256 TaskMemory=512 SecurityGroupIds=sg-0e37370f5c0bf5006 VpcId=vpc-0a18088fc46b30353 SubnetIds=subnet-0aef17cc05e90c20e,subnet-07a337ef3967268b4 ECSServiceName=MyECSService PAssignPublicIp=ENABLED PName=ecs-api PImage=041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:my-angular-app PFamily=ecs-api PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-2ysmroggyko7gck7 PContainerPort=80 PHostPort=80 PServiceConnect=true PClientAliasesPort=80 PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole PRootFileSystemReadonly=true TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/tg/b91672fd2c1c06e0 Pawsloggroup=/ecs/ecs-service-1
+  
+  updateangularapplication1:
+    if: ${{ github.event.inputs.branch == 'main'}}
+    runs-on: ubuntu-latest
+    needs: deployinfraangularapplication1
+    steps: 
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Verify code on develop branch
+        run: aws ecs update-service --cluster MyEcsCluster --service MyECSService --force-new-deployment
