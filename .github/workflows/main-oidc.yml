@@ -43,7 +43,7 @@ jobs:
           
       - name: Prepare Deployment Package
         env:
-          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+          # BUILDX_NO_DEFAULT_ATTESTATIONS: 1
         run: |
           docker build -t my-angular-app -f DockerFile .
           aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 041063310378.dkr.ecr.eu-central-1.amazonaws.com
