@@ -1,4 +1,4 @@
-name: Build and Package Angular app - docker, ECR, ECS
+name: Build and Package Angular app - docker, ECR, ECS - OIDC
 
 on:
   workflow_dispatch:
