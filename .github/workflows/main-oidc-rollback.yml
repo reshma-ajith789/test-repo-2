@@ -1,0 +1,233 @@
+
+name: Build and Package Angular app - Docker, ECR, ECS - OIDC
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Select the branch to run'
+        required: true
+        default: 'main'
+
+      run_optional_jobs:
+        description: 'Do you want to run the Optional Jobs?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+      action_type:
+        description: 'Select workflow action'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - 'deploy'
+          - 'rollback'
+
+      rollback_run_id:
+        description: 'Enter the GitHub Run ID to roll back to'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REGISTRY: 041063310378.dkr.ecr.eu-central-1.amazonaws.com
+  ECR_REPOSITORY: testrepo3
+  ACTIVE_IMAGE: 041063310378.dkr.ecr.eu-central-1.amazonaws.com/testrepo3:my-angular-app
+
+jobs:
+
+  # JOB 1: BUILD AND PUSH
+
+  buildangularapplication1:
+    if: ${{ inputs.branch == 'main' && inputs.action_type == 'deploy' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role
+          aws-region: eu-central-1
+
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
+
+      - name: Build and Push Docker Image
+        env:
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+        run: |
+          set -euo pipefail
+
+          docker build -t my-angular-app -f DockerFile .
+
+          aws ecr get-login-password --region "$AWS_REGION" |
+            docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+          docker tag my-angular-app:latest "$ACTIVE_IMAGE"
+
+          docker tag my-angular-app:latest \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.run_id }}"
+
+          docker push "$ACTIVE_IMAGE"
+
+          docker push \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.run_id }}"
+
+
+  # JOB 2: ROLLBACK IMAGE
+
+  rollback_image:
+    if: ${{ inputs.branch == 'main' && inputs.action_type == 'rollback' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role
+          aws-region: eu-central-1
+
+      - name: Verify Rollback Input
+        env:
+          ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
+        run: |
+          if [ -z "$ROLLBACK_RUN_ID" ]; then
+            echo "Error: rollback_run_id is required."
+            exit 1
+          fi
+
+      - name: Get Target Image Manifest
+        env:
+          ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
+        run: |
+          set -euo pipefail
+
+          aws ecr batch-get-image \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-ids imageTag="$ROLLBACK_RUN_ID" \
+            --output json > image-response.json
+
+          IMAGE_MANIFEST=$(jq -r '.images[0].imageManifest // empty' image-response.json)
+
+          if [ -z "$IMAGE_MANIFEST" ]; then
+            echo "Error: Image with Run ID $ROLLBACK_RUN_ID not found."
+            cat image-response.json
+            exit 1
+          fi
+
+          echo "$IMAGE_MANIFEST" > image-manifest.json
+
+      - name: Retag Previous Image as Active Image
+        run: |
+          set -euo pipefail
+
+          IMAGE_MEDIA_TYPE=$(jq -r \
+            '.images[0].imageManifestMediaType // empty' image-response.json)
+
+          if [ -n "$IMAGE_MEDIA_TYPE" ]; then
+            aws ecr put-image \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-tag my-angular-app \
+              --image-manifest file://image-manifest.json \
+              --image-manifest-media-type "$IMAGE_MEDIA_TYPE"
+          else
+            aws ecr put-image \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-tag my-angular-app \
+              --image-manifest file://image-manifest.json
+          fi
+
+          echo "Rollback image successfully retagged."
+
+
+  # JOB 3: OPTIONAL CLOUDFORMATION DEPLOYMENT
+
+  deployinfraangularapplication1:
+    if: ${{ inputs.branch == 'main' && inputs.action_type == 'deploy' && inputs.run_optional_jobs == 'true' }}
+    runs-on: ubuntu-latest
+
+    needs: buildangularapplication1
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role
+          aws-region: eu-central-1
+
+      - name: Deploy CloudFormation Stack
+        run: |
+          aws cloudformation deploy \
+            --template-file ECS.yml \
+            --stack-name MyEcsStack \
+            --parameter-overrides \
+              ECSClusterName=MyEcsCluster \
+              TaskCPU=256 \
+              TaskMemory=512 \
+              SecurityGroupIds=sg-0e37370f5c0bf5006 \
+              VpcId=vpc-0a18088fc46b30353 \
+              SubnetIds=subnet-0aef17cc05e90c20e,subnet-07a337ef3967268b4 \
+              ECSServiceName=MyECSService \
+              PAssignPublicIp=ENABLED \
+              PName=ecs-api \
+              PImage="$ACTIVE_IMAGE" \
+              PFamily=ecs-api \
+              PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-2ysmroggyko7gck7 \
+              PContainerPort=80 \
+              PHostPort=80 \
+              PServiceConnect=true \
+              PClientAliasesPort=80 \
+              PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole \
+              PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole \
+              PRootFileSystemReadonly=true \
+              TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/tg/b91672fd2c1c06e0 \
+              Pawsloggroup=/ecs/ecs-service-1
+
+
+  # JOB 4: ECS SERVICE UPDATE
+
+  updateangularapplication1:
+    if: ${{ inputs.branch == 'main' && ((inputs.action_type == 'deploy' && inputs.run_optional_jobs == 'false') || inputs.action_type == 'rollback') }}
+    runs-on: ubuntu-latest
+
+    needs:
+      - buildangularapplication1
+      - rollback_image
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::041063310378:role/GitHubActions-PROD-Deploy-Role
+          aws-region: eu-central-1
+
+      - name: Force ECS Deployment
+        run: |
+          aws ecs update-service \
+            --cluster MyEcsCluster \
+            --service MyECSService \
+            --force-new-deployment
+
+      - name: Wait for ECS Stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster MyEcsCluster \
+            --services MyECSService
