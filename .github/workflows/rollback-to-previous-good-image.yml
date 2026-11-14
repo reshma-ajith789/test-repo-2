@@ -191,7 +191,7 @@ jobs:
               ECSClusterName=MyEcsCluster \
               TaskCPU=256 \
               TaskMemory=512 \
-              SecurityGroupIds=sg-0e37370f5c0bf5006 \
+              SecurityGroupIds=sg-07e907c60f890e0d4 \
               VpcId=vpc-080431bca7f39146c \
               SubnetIds=subnet-07485a9e0c74f61a9,subnet-0d29205404a93b8b6 \
               ECSServiceName=MyECSService \
