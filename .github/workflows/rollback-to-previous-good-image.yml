@@ -52,6 +52,7 @@ jobs:
   buildangularapplication1:
     if: ${{ github.ref == 'refs/heads/main' && inputs.branch == 'main' && inputs.action_type == 'deploy' }}
     runs-on: ubuntu-latest
+    environment: build-update
 
     steps:
       - name: Checkout Code
@@ -96,6 +97,7 @@ jobs:
   rollback_image:
     if: ${{ github.ref == 'refs/heads/main' && inputs.branch == 'main' && inputs.action_type == 'rollback' }}
     runs-on: ubuntu-latest
+    environment: build-update
 
     steps:
       - name: Configure AWS Credentials
@@ -161,6 +163,7 @@ jobs:
   deployinfraangularapplication1:
     if: ${{ github.ref == 'refs/heads/main' && inputs.branch == 'main' && inputs.action_type == 'deploy' && inputs.run_optional_jobs == 'true' }}
     runs-on: ubuntu-latest
+    environment: deploy-infra
 
     needs: buildangularapplication1
 
@@ -236,6 +239,7 @@ jobs:
       }}
 
     runs-on: ubuntu-latest
+    environment: build-update
 
     needs:
       - buildangularapplication1
