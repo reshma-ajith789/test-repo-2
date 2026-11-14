@@ -189,14 +189,14 @@ jobs:
               TaskCPU=256 \
               TaskMemory=512 \
               SecurityGroupIds=sg-0e37370f5c0bf5006 \
-              VpcId=vpc-0a18088fc46b30353 \
-              SubnetIds=subnet-0aef17cc05e90c20e,subnet-07a337ef3967268b4 \
+              VpcId=vpc-080431bca7f39146c \
+              SubnetIds=subnet-07485a9e0c74f61a9,subnet-0d29205404a93b8b6 \
               ECSServiceName=MyECSService \
               PAssignPublicIp=ENABLED \
               PName=ecs-api \
               PImage="$ACTIVE_IMAGE" \
               PFamily=ecs-api \
-              PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-2ysmroggyko7gck7 \
+              PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-e64rpy33eh5der6a \
               PContainerPort=80 \
               PHostPort=80 \
               PServiceConnect=true \
@@ -204,7 +204,7 @@ jobs:
               PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole \
               PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole \
               PRootFileSystemReadonly=true \
-              TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/tg/b91672fd2c1c06e0 \
+              TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/frontend-tg/7d71e8c11a049aba \
               Pawsloggroup=/ecs/ecs-service-1
 
   # JOB 4: ECS SERVICE UPDATE
