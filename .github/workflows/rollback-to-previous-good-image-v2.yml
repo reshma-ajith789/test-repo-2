@@ -1,4 +1,4 @@
-name: Rollback to previous good image
+name: Rollback to previous good image V2
 
 on:
   workflow_dispatch:
@@ -67,7 +67,7 @@ jobs:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
         run: |
           set -euo pipefail
-          docker build -t my-angular-app -f DockerFile .
+          docker build -t my-angular-app -f Dockerfile .
           aws ecr get-login-password --region "$AWS_REGION" |
             docker login --username AWS --password-stdin "$ECR_REGISTRY"
           docker tag my-angular-app:latest "$ACTIVE_IMAGE"
@@ -97,45 +97,19 @@ jobs:
             exit 1
           fi
 
-      - name: Get Target Image Manifest
+      - name: Pull Target Image and Retag as Active Image
         env:
           ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
         run: |
           set -euo pipefail
-          aws ecr batch-get-image \
-            --repository-name "$ECR_REPOSITORY" \
-            --image-ids imageTag="$ROLLBACK_RUN_ID" \
-            --output json > image-response.json
+          SOURCE_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$ROLLBACK_RUN_ID"
 
-          jq -r '.images[0].imageManifest // empty' image-response.json > image-manifest.json
-          if [ ! -s image-manifest.json ]; then
-            echo "Error: Image with Run ID $ROLLBACK_RUN_ID not found."
-            cat image-response.json
-            exit 1
-          fi
+          aws ecr get-login-password --region "$AWS_REGION" |
+            docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-          TARGET_DIGEST=$(jq -r '.images[0].imageId.imageDigest // empty' image-response.json)
-          echo "Target digest to restore: $TARGET_DIGEST"
-
-      - name: Retag Previous Image as Active Image
-        run: |
-          set -euo pipefail
-          IMAGE_MEDIA_TYPE=$(jq -r '.images[0].imageManifestMediaType // empty' image-response.json)
-          if [ -n "$IMAGE_MEDIA_TYPE" ]; then
-            aws ecr put-image \
-              --repository-name "$ECR_REPOSITORY" \
-              --image-tag my-angular-app \
-              --image-manifest file://image-manifest.json \
-              --image-manifest-media-type "$IMAGE_MEDIA_TYPE" > put-response.json
-          else
-            aws ecr put-image \
-              --repository-name "$ECR_REPOSITORY" \
-              --image-tag my-angular-app \
-              --image-manifest file://image-manifest.json > put-response.json
-          fi
-
-          RESTORED_DIGEST=$(jq -r '.image.imageId.imageDigest // empty' put-response.json)
-          echo "Active tag digest is now: $RESTORED_DIGEST"
+          docker pull "$SOURCE_IMAGE"
+          docker tag "$SOURCE_IMAGE" "$ACTIVE_IMAGE"
+          docker push "$ACTIVE_IMAGE"
 
   deployinfraangularapplication1:
     if: ${{ github.ref == 'refs/heads/main' && inputs.branch == 'main' && inputs.action_type == 'deploy' && inputs.run_optional_jobs == 'true' }}
