@@ -193,7 +193,7 @@ jobs:
               TaskMemory=512 \
               SecurityGroupIds=sg-07e907c60f890e0d4 \
               VpcId=vpc-080431bca7f39146c \
-              SubnetIds=subnet-07485a9e0c74f61a9,subnet-0d29205404a93b8b6 \
+              SubnetIds=subnet-0c84576d85eba3b1e,subnet-07bb96354b468dcb5 \
               ECSServiceName=MyECSService \
               PAssignPublicIp=ENABLED \
               PName=ecs-api \
