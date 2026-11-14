@@ -1,4 +1,4 @@
-name: Rollback to previous good image v2
+name: Rollback to previous good image
 
 on:
   workflow_dispatch:
@@ -91,6 +91,7 @@ jobs:
         env:
           ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
         run: |
+          set -euo pipefail
           if ! [[ "$ROLLBACK_RUN_ID" =~ ^[0-9]+$ ]]; then
             echo "Error: A valid numeric rollback Run ID is required."
             exit 1
@@ -105,12 +106,16 @@ jobs:
             --repository-name "$ECR_REPOSITORY" \
             --image-ids imageTag="$ROLLBACK_RUN_ID" \
             --output json > image-response.json
-          jq -c '.images[0].imageManifest // empty | if type == "string" then fromjson else . end' image-response.json > image-manifest.json
+
+          jq -r '.images[0].imageManifest // empty' image-response.json > image-manifest.json
           if [ ! -s image-manifest.json ]; then
             echo "Error: Image with Run ID $ROLLBACK_RUN_ID not found."
             cat image-response.json
             exit 1
           fi
+
+          TARGET_DIGEST=$(jq -r '.images[0].imageId.imageDigest // empty' image-response.json)
+          echo "Target digest to restore: $TARGET_DIGEST"
 
       - name: Retag Previous Image as Active Image
         run: |
@@ -121,14 +126,16 @@ jobs:
               --repository-name "$ECR_REPOSITORY" \
               --image-tag my-angular-app \
               --image-manifest file://image-manifest.json \
-              --image-manifest-media-type "$IMAGE_MEDIA_TYPE"
+              --image-manifest-media-type "$IMAGE_MEDIA_TYPE" > put-response.json
           else
             aws ecr put-image \
               --repository-name "$ECR_REPOSITORY" \
               --image-tag my-angular-app \
-              --image-manifest file://image-manifest.json
+              --image-manifest file://image-manifest.json > put-response.json
           fi
-          echo "Rollback image successfully retagged."
+
+          RESTORED_DIGEST=$(jq -r '.image.imageId.imageDigest // empty' put-response.json)
+          echo "Active tag digest is now: $RESTORED_DIGEST"
 
   deployinfraangularapplication1:
     if: ${{ github.ref == 'refs/heads/main' && inputs.branch == 'main' && inputs.action_type == 'deploy' && inputs.run_optional_jobs == 'true' }}
