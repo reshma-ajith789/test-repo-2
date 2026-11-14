@@ -1,4 +1,4 @@
-name: Build and Package Angular app - Docker, ECR, ECS - OIDC
+name: Rollback to previous good image
 
 on:
   workflow_dispatch:
