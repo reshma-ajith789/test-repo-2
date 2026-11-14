@@ -67,7 +67,7 @@ jobs:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
         run: |
           set -euo pipefail
-          docker build -t my-angular-app -f Dockerfile .
+          docker build -t my-angular-app -f DockerFile .
           aws ecr get-login-password --region "$AWS_REGION" |
             docker login --username AWS --password-stdin "$ECR_REGISTRY"
           docker tag my-angular-app:latest "$ACTIVE_IMAGE"
