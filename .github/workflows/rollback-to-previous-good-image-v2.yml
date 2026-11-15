@@ -160,7 +160,7 @@ jobs:
 
   updateangularapplication1:
     if: >-
-      ${{ github.ref == 'refs/heads/main' &&
+      ${{ !cancelled() && github.ref == 'refs/heads/main' &&
         inputs.branch == 'main' &&
         (
           (
