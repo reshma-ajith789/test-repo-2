@@ -139,15 +139,15 @@ jobs:
               ECSClusterName=MyEcsCluster \
               TaskCPU=256 \
               TaskMemory=512 \
-              SecurityGroupIds=sg-07e907c60f890e0d4 \
-              VpcId=vpc-080431bca7f39146c \
-              SubnetIds=subnet-0c84576d85eba3b1e,subnet-07bb96354b468dcb5 \
+              SecurityGroupIds=sg-08d473c482e1c883f \
+              VpcId=vpc-03e2a6d93d1e9e706 \
+              SubnetIds=subnet-0d67bdc200eb9026e,subnet-05878923afaacaa08 \
               ECSServiceName=MyECSService \
               PAssignPublicIp=ENABLED \
               PName=ecs-api \
               PImage="$ACTIVE_IMAGE" \
               PFamily=ecs-api \
-              PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-e64rpy33eh5der6a \
+              PNamespace=arn:aws:servicediscovery:eu-central-1:041063310378:namespace/ns-aamxdwur2qrayggd \
               PContainerPort=80 \
               PHostPort=80 \
               PServiceConnect=true \
@@ -155,7 +155,7 @@ jobs:
               PExecutionRoleArn=arn:aws:iam::041063310378:role/ecsTaskExecutionRole \
               PTaskRoleArn=arn:aws:iam::041063310378:role/ecsTaskRole \
               PRootFileSystemReadonly=true \
-              TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/frontend-tg/7d71e8c11a049aba \
+              TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/frontend-tg/09ae1d05ede166d3 \
               Pawsloggroup=/ecs/ecs-service-1
 
   updateangularapplication1:
