@@ -75,6 +75,7 @@ jobs:
       - name: Build and Push Docker Image
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+          IMAGE_TAG: my-angular-app-${{ github.run_id }}
         run: |
           set -euo pipefail
 
@@ -84,15 +85,15 @@ jobs:
             docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
           docker tag my-angular-app:latest \
-            "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.run_id }}"
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
           docker push \
-            "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.run_id }}"
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Get Pushed Image Digest
         id: digest
         env:
-          IMAGE_TAG: ${{ github.run_id }}
+          IMAGE_TAG: my-angular-app-${{ github.run_id }}
         run: |
           set -euo pipefail
 
@@ -107,7 +108,9 @@ jobs:
             exit 1
           fi
 
+          echo "Image tag: $IMAGE_TAG"
           echo "Image digest: $DIGEST"
+
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
 
@@ -158,18 +161,22 @@ jobs:
         run: |
           set -euo pipefail
 
+          IMAGE_TAG="my-angular-app-$ROLLBACK_RUN_ID"
+
           DIGEST=$(aws ecr describe-images \
             --repository-name "$ECR_REPOSITORY" \
-            --image-ids imageTag="$ROLLBACK_RUN_ID" \
+            --image-ids imageTag="$IMAGE_TAG" \
             --query 'imageDetails[0].imageDigest' \
             --output text)
 
           if ! [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
-            echo "Error: No valid ECR image found for Run ID $ROLLBACK_RUN_ID"
+            echo "Error: No valid ECR image found for tag $IMAGE_TAG"
             exit 1
           fi
 
+          echo "Rollback image tag: $IMAGE_TAG"
           echo "Rollback image digest: $DIGEST"
+
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
 
@@ -219,8 +226,6 @@ jobs:
       - name: Verify AWS Identity
         run: aws sts get-caller-identity
 
-      # Select digest based on deploy or rollback action
-
       - name: Resolve Image Digest
         id: resolve
         env:
@@ -244,8 +249,6 @@ jobs:
           echo "Selected image digest: $DIGEST"
 
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
-
-      # Deploy selected image using CloudFormation
 
       - name: Deploy CloudFormation Stack
         env:
@@ -283,8 +286,6 @@ jobs:
               PRootFileSystemReadonly=true \
               TargetGroupArn=arn:aws:elasticloadbalancing:eu-central-1:041063310378:targetgroup/frontend-tg/09ae1d05ede166d3 \
               Pawsloggroup=/ecs/ecs-service-1
-
-      # Wait until ECS finishes deployment
 
       - name: Wait for ECS Stability
         run: |
