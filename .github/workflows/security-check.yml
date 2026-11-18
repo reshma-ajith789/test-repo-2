@@ -1,0 +1,71 @@
+
+name: Frontend Security Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  code-scan:
+    name: Code Security Scan (Semgrep)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Install Semgrep
+        run: python -m pip install semgrep
+
+      - name: Scan source code
+        run: semgrep scan --config p/security-audit --error .
+
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan Git history for secrets
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/path" \
+            ghcr.io/gitleaks/gitleaks:latest \
+            git --redact /path
+
+  dependency-scan:
+    name: Dependency Scan (npm audit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scan npm dependencies
+        run: npm audit --audit-level=high
