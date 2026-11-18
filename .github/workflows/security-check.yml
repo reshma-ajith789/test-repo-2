@@ -1,71 +1,76 @@
-
-name: Frontend Security Checks
+name: Angular Security Checks
 
 on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - main
+
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  code-scan:
-    name: Code Security Scan (Semgrep)
+
+  # 1. Source code security scan
+  code-security:
+    name: Code Security Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v7
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: '3.13'
 
       - name: Install Semgrep
-        run: python -m pip install semgrep
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install semgrep
 
-      - name: Scan source code
-        run: semgrep scan --config p/security-audit --error .
+      - name: Run Semgrep Security Scan
+        run: |
+          semgrep scan --config p/security-audit --error -j 1 .
 
-  secret-scan:
-    name: Secret Scan (Gitleaks)
+  # 2. Secret detection
+  secret-security:
+    name: Secret Security Scan
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository history
-        uses: actions/checkout@v7
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Scan Git history for secrets
+      - name: Run Gitleaks
         run: |
           docker run --rm \
-            -v "$GITHUB_WORKSPACE:/path" \
+            -v "$GITHUB_WORKSPACE:/repo" \
+            -w /repo \
             ghcr.io/gitleaks/gitleaks:latest \
-            git --redact /path
+            git . --redact --verbose
 
-  dependency-scan:
-    name: Dependency Scan (npm audit)
+  # 3. Dependency vulnerability scan
+  dependency-security:
+    name: Dependency Security Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: '24'
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Scan npm dependencies
+      - name: Run npm dependency audit
         run: npm audit --audit-level=high
