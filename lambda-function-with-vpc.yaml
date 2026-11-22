@@ -1,0 +1,110 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "CloudFormation template to create a Lambda function using a container image with ASPNETCORE_ENVIRONMENT environment variable, existing IAM role, and VPC configuration | Version: 1.2 | Date: 2026-11-13"
+
+Parameters:
+  LambdaFunctionName:
+    Type: String
+    Description: Name of the Lambda function
+
+  ContainerImageUri:
+    Type: String
+    Description: ECR Image URI
+
+  LambdaExecutionRoleArn:
+    Type: String
+    Description: ARN of an existing IAM Role for Lambda execution
+
+  LambdaTimeout:
+    Type: Number
+    Default: 30
+
+  LambdaMemorySize:
+    Type: Number
+    Default: 512
+
+  EnvVarValue:
+    Type: String
+    Default: Production
+    Description: Value for the ASPNETCORE_ENVIRONMENT environment variable
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID in which the Lambda security group will be created
+
+  VpcSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of subnet IDs for the Lambda function's VPC configuration
+
+  CacheSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group ID of the destination Valkey cache
+
+  Environment:
+    Type: String
+    Default: prod
+    Description: Environment name used for resource tagging
+
+Resources:
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Lambda function
+      VpcId: !Ref VpcId
+
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          DestinationSecurityGroupId: !Ref CacheSecurityGroupId
+          Description: Allow outbound TCP 6379 to cache security group
+
+      Tags:
+        - Key: Application
+          Value: Test
+        - Key: ManagedBy
+          Value: Test-Team
+        - Key: Environment
+          Value: !Ref Environment
+
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      PackageType: Image
+
+      Code:
+        ImageUri: !Ref ContainerImageUri
+
+      Role: !Ref LambdaExecutionRoleArn
+
+      Environment:
+        Variables:
+          ASPNETCORE_ENVIRONMENT: !Ref EnvVarValue
+
+      Timeout: !Ref LambdaTimeout
+      MemorySize: !Ref LambdaMemorySize
+
+      VpcConfig:
+        SubnetIds: !Ref VpcSubnetIds
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+
+      Tags:
+        - Key: Application
+          Value: Test
+        - Key: ManagedBy
+          Value: Test-Team
+        - Key: Environment
+          Value: !Ref Environment
+
+Outputs:
+
+  LambdaFunctionName:
+    Description: Lambda Function Name
+    Value: !Ref MyLambdaFunction
+
+  LambdaFunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt MyLambdaFunction.Arn
